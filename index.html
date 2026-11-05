@@ -113,6 +113,20 @@ body:before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.2;bac
 <div class="admin-section"><h3>管理員密碼</h3><label class="admin-wide">變更控制台密碼<input id="cfgPin" type="password" inputmode="numeric" placeholder="至少 4 碼"></label></div>
 <div class="admin-actions"><button id="adminDefaults" type="button">恢復預設</button><button id="adminSave" type="button">儲存設定</button></div><p id="adminStatus" class="admin-status"></p><p class="admin-security">注意：此為純前端示範版，密碼與設定儲存在瀏覽器本機，懂得操作開發者工具的人仍可修改；正式多人營運需改用伺服器驗證。</p></div></div>
 <script>
+const DEFAULT_CFG={
+  weights:[24,20,18,15,11,7,3,2],
+  freeWeights:[24,20,18,15,11,7,3,2],
+  scatterNeed:4,
+  freeSpins:8,
+  matchCount:6,
+  freeBias:20,
+  orbNormal:0.05,
+  orbFree:1,
+  orbWeights:[50,25,15,7,2.5,0.5],
+  chainStart:1.25,
+  chainStep:0.25,
+  chainCap:4
+};
 (()=>{const S=["🚀","🛰️","🌍","🌙","💠","👾","🌟","🌀"],W=[24,20,18,15,11,7,3,2],P={"🚀":2,"🛰️":3,"🌍":4,"🌙":5,"💠":8,"👾":12,"🌟":0,"🌀":0};let st=JSON.parse(localStorage.getItem("quantumrift1")||"null")||{balance:10000,bet:100,free:0,mult:1,freeBallMult:1,history:[],sound:true};if(typeof st.freeBallMult!=="number"||!Number.isFinite(st.freeBallMult)||st.freeBallMult<1)st.freeBallMult=1;let cfg={...DEFAULT_CFG,...JSON.parse(localStorage.getItem("quantumrift_cfg")||"{}")};cfg.weights=cfg.weights||DEFAULT_CFG.weights;cfg.freeWeights=cfg.freeWeights||DEFAULT_CFG.freeWeights;cfg.orbWeights=cfg.orbWeights||DEFAULT_CFG.orbWeights;let board=[],busy=false,autoRunning=false,audio=null,burstCells=new Set();const $=x=>document.getElementById(x),fmt=n=>Math.floor(n).toLocaleString("zh-TW"),wait=t=>new Promise(r=>setTimeout(r,t));function save(){localStorage.setItem("quantumrift1",JSON.stringify(st));stats()}function stats(){$("balance").textContent=fmt(st.balance);$("betLabel").textContent=fmt(st.bet);$("free").textContent=st.free;$("orbTotalMultiplier").textContent=(st.free>0?st.freeBallMult:1).toLocaleString("en-US",{maximumFractionDigits:2})+"×";$("betSlider").disabled=busy||st.free>0;$("sound").textContent=st.sound?"🔊 音效：開":"🔇 音效：關";$("buyFree").textContent=`🎁 購買免費遊戲（${fmt(st.bet*100)}）`;$("buyFree").disabled=busy||st.free>0}function tone(f=440,d=.12){if(!st.sound)return;try{audio=audio||new(window.AudioContext||window.webkitAudioContext)();if(audio.state==="suspended")audio.resume();let o=audio.createOscillator(),g=audio.createGain();o.type="sine";o.frequency.value=f;g.gain.setValueAtTime(.06,audio.currentTime);g.gain.exponentialRampToValueAtTime(.001,audio.currentTime+d);o.connect(g);g.connect(audio.destination);o.start();o.stop(audio.currentTime+d)}catch(e){}}function eliminationSound(){if(!st.sound)return; tone(620,.12); setTimeout(()=>tone(820,.14),90); setTimeout(()=>tone(1040,.18),180)}function pick(isFree=false){const weights=isFree?cfg.freeWeights:cfg.weights,total=weights.reduce((a,b)=>a+b,0);let n=Math.random()*total;for(let i=0;i<weights.length;i++){n-=weights[i];if(n<=0)return S[i]}return S[0]}const MULTS=[2,3,10,50,100,500];
 // 倍率球總出現率：一般遊戲 0.05%，免費遊戲 1%。球種權重由小到大遞減。
 function pickMultiplier(){let n=Math.random()*cfg.orbWeights.reduce((a,b)=>a+b,0);for(let i=0;i<cfg.orbWeights.length;i++){n-=cfg.orbWeights[i];if(n<=0)return MULTS[i]}return 2}
